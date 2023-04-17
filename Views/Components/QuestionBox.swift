@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct QuestionBox: View {
-    @ObservedObject var question: Question
+    @ObservedObject var answer: Answer
     
     var body: some View {
-        Text(question.answer)
+        Text(answer.answerText)
             .font(.system(size: 14))
             .padding(.all, 10)
             .frame(maxWidth: 220)

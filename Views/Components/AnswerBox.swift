@@ -8,15 +8,17 @@
 import SwiftUI
 
 struct AnswerBox: View {
-    var question : Question
+    @ObservedObject var question : Question
+    @ObservedObject var answer: Answer
+    
     var body: some View {
         VStack(spacing: 0){
-            Text(question.question)
+            Text(question.questionText)
                 .frame(maxWidth: 220)
                 .font(caveat.bodyBold)
             
             ZStack{
-                Text(question.longAnswer).frame(maxWidth: 220)
+                Text(answer.longAnswerText).frame(maxWidth: 220)
                     .font(caveat.bodyRegular)
                 
                 ZStack{
@@ -26,7 +28,7 @@ struct AnswerBox: View {
                         .cornerRadius(10)
                         .frame(maxWidth: 220)
                     Text("Drop here")
-                }
+                }.opacity(question.isShowing ? 1 : 0)
             }
             
         }

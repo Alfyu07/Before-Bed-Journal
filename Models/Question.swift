@@ -7,20 +7,28 @@
 
 import Foundation
 
+enum QuestionType:String{
+    case grateful = "grateful"
+    case bestThingHappen = "bestThingHappen"
+    case didntGoWell = "didntGoWell"
+    case target = "target"
+    
+}
+
 class Question : Equatable, ObservableObject{
     static func == (lhs: Question, rhs: Question) -> Bool {
-        return lhs.id == rhs.id && lhs.question == rhs.question &&
-        lhs.answer == rhs.answer && lhs.longAnswer == rhs.longAnswer
+        lhs.id == rhs.id && lhs.questionText == rhs.questionText && lhs.type == lhs.type
     }
     
-    @Published var id : String = UUID().uuidString
-    @Published var question: String
-    @Published var answer: String
-    @Published var longAnswer : String
     
-    init(question: String, answer: String, longAnswer : String) {
-        self.question = question
-        self.answer = answer
-        self.longAnswer = longAnswer
+    @Published var id : String = UUID().uuidString
+    @Published var questionText: String
+    @Published var type: QuestionType
+    @Published var isShowing : Bool = false
+    
+    
+    init(questionText: String, type: QuestionType) {
+        self.questionText = questionText
+        self.type = type
     }
 }
