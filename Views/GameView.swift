@@ -8,16 +8,15 @@
 import SwiftUI
 
 struct GameView: View {
-    @StateObject var gameViewModel = GameStateViewModel()
+    @StateObject var viewModel = GameStateViewModel()
+    @State  var bookPosition = CGPoint(x: 190, y: 380)
     
-    @State  var arrowPosition = CGPoint(x: 190, y: 380)
-    @State var dialogueState : Bool = false
+    //game state
+    @State var dialogueState : Bool = true
     @State var gamePlayState : Bool = false
     @State var winState : Bool = false
-    @State var initialState: Bool = true
+    @State var initialState: Bool = false
     
-    @State private var showDrop: [Bool] = [true, true, true, true]
-    @State var errorState : [Bool] = [false, false, false, false]
     //state moodbar
     @State var happinessValue: Float = 0.1
     @State var stressValue: Float = 0.7
@@ -28,10 +27,12 @@ struct GameView: View {
     @State var targetFeedback = false
     @State var bestThingFeedback = false
     @State var didntGoWellFeedback = false
-   
     
+    //animation state
+    @State var onAnimation = false
+    @State var isShowingText = false
+    @State var hideDialogue = false
     func resetFeedbackState(){
-        
         gratefulFeedback = false
         targetFeedback = false
         bestThingFeedback = false
@@ -41,30 +42,93 @@ struct GameView: View {
     //dispatchQueue
     let dispatchQueue = DispatchQueue(label: "update", qos: .background)
     
-
- 
-    
     var body: some View {
         GeometryReader{
             geometry in
             ZStack(alignment: .top){
                 if(initialState){
-                    Image("closedBook")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: 70)
-                        .rotationEffect(.degrees(-40))
-                        .position(arrowPosition)
-                        .onTapGesture {
-                            print("masuk ke game state")
-                            initialState = false
-                            gamePlayState = true
-                        }
-                        .onAppear{
-                            withAnimation(.easeInOut(duration: 1).repeatForever()){
-                                arrowPosition = CGPoint(x: 190, y: 360)
+                    VStack{
+                        Image("closedBook")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: 70)
+                            .rotationEffect(.degrees(-40))
+                            .position(bookPosition)
+                            .onTapGesture {
+                                print("masuk ke game state")
+                                initialState = false
+                                gamePlayState = true
+                            }
+                            .onAppear{
+                                withAnimation(.easeInOut(duration: 1).repeatForever()){
+                                    bookPosition = CGPoint(x: 190, y: 360)
+                                }
+                            }
+                        ZStack{
+                            TypingText(text: "My journal book, I haven't filled it in for a long time, maybe I should grab it.", onAnimation: $onAnimation)
+                        }.padding(.all, 24)
+                            .frame(maxWidth: .infinity, maxHeight: geometry.size.height * 0.1)
+                            .cornerRadius(20)
+                            .background(chocolate)
+                            .cornerRadius(20)
+                            .padding(.horizontal, defaultMargin)
+                            .opacity(hideDialogue ? 0.0 : 1.0)
+                            .onAppear() {
+                                Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                                    withAnimation(.easeOut(duration: 2)){
+                                        self.hideDialogue = true
+                                    }
+                                }
+                            }
+                    }
+                    
+                }
+                else if(dialogueState){
+                    VStack(spacing : 0){
+                        Spacer()
+                        ZStack(alignment: .bottomTrailing){
+                            Rectangle()
+                                .fill(chocolate)
+                                .frame(maxWidth: .infinity, maxHeight: geometry.size.height * 0.3)
+                            VStack(alignment: .trailing){
+                                Spacer()
+                                ForEach(viewModel.firstMonolog.indices){ i in
+                                    if(viewModel.counter == i){
+                                        TypingText(text : viewModel.firstMonolog[viewModel.counter], onAnimation: $onAnimation)
+                                    }
+                                }
+                                Spacer()
+                                Text("Tap to next")
+                                    .font(.body)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .opacity(isShowingText ? 1.0 : 0.2)
+                                    .onAppear{
+                                        withAnimation(Animation.easeInOut(duration: 1.5).repeatForever()) {
+                                            self.isShowingText.toggle() // toggle show/hide text repeatedly with easing animation
+                                        }
+                                    }
                             }
                         }
+                        .padding(.all, 24)
+                        .frame(maxWidth: .infinity, maxHeight: geometry.size.height * 0.3)
+                        .cornerRadius(20)
+                        .background(chocolate)
+                        .cornerRadius(20)
+                        .padding(.horizontal, defaultMargin)
+                        
+                        Spacer()
+                        Image("mad").resizable().scaledToFit().frame(maxHeight: 450).ignoresSafeArea()
+                    }
+                    .onTapGesture {
+                        if viewModel.counter < viewModel.firstMonolog.count - 1 {
+                            viewModel.counter += 1
+                        } else {
+                            dialogueState = false
+                            initialState = true
+                            viewModel.counter = 0
+                        }
+                    }
                 }
                 else if(gamePlayState){
                     VStack(alignment: .leading, spacing: 0){
@@ -73,54 +137,7 @@ struct GameView: View {
                         
                         HStack(alignment: .top, spacing: 0){
                             //moodbar
-                            VStack(alignment : .leading, spacing: 0){
-                                
-                                HStack(spacing: 0){
-                                    Image(systemName: "heart.fill")
-                                        .resizable()
-                                        .frame(width: 20, height: 20)
-                                        .padding(.trailing, 6)
-                                    
-                                    Text("Happiness")
-                                        .font(.system(size: 20))
-                                        .fontWeight(.semibold)
-                                }.foregroundColor(pink)
-                                
-                                MyProgressBar(color: pink, value: $happinessValue).padding(.top, 8)
-                                
-                                HStack(spacing: 0){
-                                    Text("💢")
-                                        .font(.system(size : 20))
-                                        .padding(.trailing, 6)
-                                    
-                                    Text("Stress")
-                                        .font(.system(size: 20))
-                                        .fontWeight(.semibold)
-                                }
-                                .foregroundColor(red).padding(.top, 12)
-                                
-                                MyProgressBar(color: red, value: $stressValue).padding(.top, 8)
-                                
-                                HStack(spacing: 0){
-                                    Image(systemName: "flame.fill")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(height: 20)
-                                        .padding(.trailing, 6)
-                                    
-                                    Text("Motivation")
-                                        .font(.system(size: 20))
-                                        .fontWeight(.semibold)
-                                }.foregroundColor(orange)
-                                    .padding(.top, 12)
-                                
-                                
-                                MyProgressBar(color: orange, value: $motivationValue).padding(.top, 8)
-                            }
-                            .padding(.all, 24)
-                            .frame(maxWidth: geometry.size.width * 0.2, maxHeight: 280)
-                            .background(Color("chocolate"))
-                            .cornerRadius(12)
+                            ParameterView(happinessValue: $happinessValue, stressValue: $stressValue, motivationValue: $motivationValue)
                             
                             Spacer().frame(width: 12)
                             //Book
@@ -130,29 +147,28 @@ struct GameView: View {
                                 
                                 LazyHGrid(rows: [GridItem(.flexible()), GridItem(.flexible())], alignment: .top, spacing: 60) {
                                     
-                                    ForEach(Array(zip(gameViewModel.questions, gameViewModel.answers)), id: \.0.id) { question, answer in
+                                    ForEach(Array(zip(viewModel.questions, viewModel.answers)), id: \.0.id) { question, answer in
                                         VStack(spacing: 0){
                                             Text(question.questionText)
                                                 .frame(maxWidth: 220)
-                                                .font(caveat.bodyBold)
+                                                .font(caveat.bodyBold3)
                                             
                                             ZStack{
-                                                if (showDrop[gameViewModel.answers.firstIndex(of: answer) ?? 0]) {
-                                                        Rectangle()
-                                                            .stroke(style: StrokeStyle(lineWidth: 2, dash: [4]))
-                                                            .background(.white)
-                                                            .cornerRadius(10)
-                                                            .frame(maxWidth: 220)
-                                                        Text("Drop here")
+                                                if (viewModel.showDrop[viewModel.answers.firstIndex(of: answer) ?? 0]) {
+                                                    Rectangle()
+                                                        .stroke(style: StrokeStyle(lineWidth: 2, dash: [4]))
+                                                        .background(.white)
+                                                        .cornerRadius(10)
+                                                        .frame(maxWidth: 220, maxHeight: 200)
+                                                    Text("Drop here")
                                                 } else {
                                                     Text(answer.longAnswerText).frame(maxWidth: 220)
-                                                        .font(caveat.bodyRegular)
+                                                        .font(caveat.bodyRegular2)
                                                 }
-                                            }.modifier(Shake(animatableData: CGFloat(errorState[gameViewModel.answers.firstIndex(of: answer) ?? 0] ? 1 : 0)))
+                                            }.modifier(Shake(animatableData: CGFloat(viewModel.errorState[viewModel.answers.firstIndex(of: answer) ?? 0] ? 1 : 0)))
                                         }
                                         .onDrop(of: [.url], isTargeted: .constant(false)){
                                             providers in
-                                            
                                             if let first = providers.first{
                                                 let _ = first.loadObject(ofClass: URL.self){
                                                     value, error in
@@ -166,8 +182,9 @@ struct GameView: View {
                                                             DispatchQueue.main.async{
                                                                 question.isShowing = false
                                                                 answer.isShowing = false
-                                                                let index = gameViewModel.answers.firstIndex(of: answer) ?? 0
-                                                                showDrop[index] = false
+                                                                
+                                                                let index = viewModel.answers.firstIndex(of: answer) ?? 0
+                                                                viewModel.showDrop[index] = false
                                                                 
                                                                 resetFeedbackState()
                                                                 switch question.type{
@@ -184,15 +201,20 @@ struct GameView: View {
                                                                     targetFeedback = true
                                                                     break
                                                                 }
-                                                                errorState = Array.init(repeating: false, count: 4)
+                                                                viewModel.errorState = Array.init(repeating: false, count: viewModel.questions.count)
                                                             }
                                                         }
                                                     }
                                                     else{
-                                                        withAnimation{
-                                                            errorState[gameViewModel.answers.firstIndex(of: answer) ?? 0] = true
+                                                        dispatchQueue.async{
+                                                            DispatchQueue.main.async{
+                                                                withAnimation{
+                                                                    viewModel.errorState[viewModel.answers.firstIndex(of: answer) ?? 0] = true
+                                                                }
+                                                                viewModel.errorState = Array.init(repeating: false, count: viewModel.questions.count)
+                                                            }
                                                         }
-                                                        errorState = Array.init(repeating: false, count: 4)
+                                                        
                                                         
                                                     }
                                                 }
@@ -216,13 +238,10 @@ struct GameView: View {
                                     .foregroundColor(.white)
                                 
                                 
-                                ForEach(gameViewModel.answers.shuffled(), id: \.id){
+                                ForEach(viewModel.answers.shuffled(), id: \.id){
                                     answer in
-//                                    QuestionBox(answer: answer).padding(.top, 12).onDrag{
-//                                        return .init(contentsOf: URL(string: String(answer.type.rawValue)))!
-//                                    }
                                     
-                                    if (showDrop[gameViewModel.answers.firstIndex(of: answer) ?? 0]) {
+                                    if (viewModel.showDrop[viewModel.answers.firstIndex(of: answer) ?? 0]) {
                                         QuestionBox(answer: answer).padding(.top, 12).onDrag{
                                             return .init(contentsOf: URL(string: String(answer.type.rawValue)))!
                                         }
@@ -242,20 +261,35 @@ struct GameView: View {
                         //chat/msg bar
                         ZStack(){
                             if(gratefulFeedback){
-                                TypingText(text : "Keeping a gratitude journal can be a fun way to reduce stress and improve your mood. By taking time each day to reflect on the things you're thankful for, you may find yourself feeling happier and more content.")
-//                                Text("Keeping a gratitude journal can be a fun way to reduce stress and improve your mood. By taking time each day to reflect on the things you're thankful for, you may find yourself feeling happier and more content.").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
-                            }else if(didntGoWellFeedback){
-                                TypingText(text : "Reflecting on the things that didn't go well today and how to make them better in your journal can help you grow, improve, and feel better!")
+                                TypingText(text : "Keeping a gratitude journal can be a fun way for me to reduce stress and improve my mood. By taking time each day to reflect on the things I'm thankful for, I may find myself feeling happier and more content.", onAnimation: $onAnimation).onChange(of: onAnimation){
+                                    onAnimation in
+                                    
+                                    if(!onAnimation && viewModel.showDrop.allSatisfy({!$0})){
+                                        print("selesaiiiiii")
+                                    }
+                                    
+                                }
                                 
-//                                Text("Reflecting on the things that didn't go well today and how to make them better in your journal can help you grow, improve, and feel better!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
+                            }else if(didntGoWellFeedback){
+                                TypingText(text : "When I reflect on the things that didn't go well today and think of ways to make them better in my journal, I can grow, improve, and feel better about myself.", onAnimation : $onAnimation).onChange(of: onAnimation){
+                                    onAnimation in
+                                    moveToNextPhase(onAnimation: onAnimation)
+                                }
+                                
                             }else if(bestThingFeedback){
-                                TypingText(text : "Reflecting on the best thing that happened to you today and how it made you feel in your journal can help you stay focused on the positive, boost your mood, and increase your overall well-being!")
-//                                Text("Reflecting on the best thing that happened to you today and how it made you feel in your journal can help you stay focused on the positive, boost your mood, and increase your overall well-being!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
+                                TypingText(text : "Reflecting on the best thing that happened to me today and how it made me feel in my journal really helps me stay positive. It has a great impact on my mood and well-being.", onAnimation : $onAnimation).onChange(of: onAnimation){
+                                    onAnimation in
+                                    moveToNextPhase(onAnimation: onAnimation)
+                                }
+                                
                             }else if(targetFeedback){ //target
-                                TypingText(text: "Take charge of your life and your goals! This simple yet powerful journaling prompt can help you stay on track, motivated, and inspired to achieve your dreams and aspirations!")
-//                                Text("Take charge of your life and your goals! This simple yet powerful journaling prompt can help you stay on track, motivated, and inspired to achieve your dreams and aspirations!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
+                                TypingText(text: "I need to take charge of my life and my goals. This simple yet powerful journaling prompt can help me stay on track, motivated, and inspired to achieve my dreams and aspirations", onAnimation : $onAnimation).onChange(of: onAnimation){
+                                    onAnimation in
+                                    moveToNextPhase(onAnimation: onAnimation)
+                                }
+                                
                             }else{
-                                Text("Hey there, wordsmith! Let's put those fingers to work and start writing up a storm!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
+                                TypingText(text: "Maybe.. I can write it all down on this journal to calm my mind...", onAnimation : $onAnimation)
                             }
                         }
                         .padding(.all, 24)
@@ -270,18 +304,51 @@ struct GameView: View {
                                 
                             }
                         }
-                }
-                else if(dialogueState){
-                    DialogueBox(text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent efficitur ligula vitae velit semper, in malesuada sapien sollicitudin. Sed ultricies diam vel fringilla dapibus.")
-                    Image("closedBook")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: 70)
-                        .rotationEffect(.degrees(-40))
-                        .position(x :190, y : 450)
-                        .onTapGesture {
-                            print("masuk ke game state")
+                } else if(winState){
+                    VStack(spacing : 0){
+                        Spacer()
+                        ZStack(alignment: .bottomTrailing){
+                            Rectangle()
+                                .fill(chocolate)
+                                .frame(maxWidth: .infinity, maxHeight: geometry.size.height * 0.3)
+                            VStack(alignment: .trailing){
+                                Spacer()
+                                ForEach(viewModel.lastMonolog.indices){ i in
+                                    if(viewModel.counter == i){
+                                        TypingText(text : viewModel.lastMonolog[viewModel.counter], onAnimation: $onAnimation)
+                                    }
+                                }
+                                Spacer()
+                                Text("Tap to next")
+                                    .font(.body)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .opacity(isShowingText ? 1.0 : 0.2)
+                                    .onAppear{
+                                        withAnimation(Animation.easeInOut(duration: 1.5).repeatForever()) {
+                                            self.isShowingText.toggle() // toggle show/hide text repeatedly with easing animation
+                                        }
+                                    }
+                            }
                         }
+                        .padding(.all, 24)
+                        .frame(maxWidth: .infinity, maxHeight: geometry.size.height * 0.3)
+                        .cornerRadius(20)
+                        .background(chocolate)
+                        .cornerRadius(20)
+                        .padding(.horizontal, defaultMargin)
+                        
+                        Spacer()
+                        Image("happy").resizable().scaledToFit().frame(maxHeight: 450).ignoresSafeArea()
+                    }
+                    .onTapGesture {
+                        if viewModel.counter < viewModel.lastMonolog.count - 1 {
+                            viewModel.counter += 1
+                        } else {
+                            dialogueState = false
+                            initialState = false
+                        }
+                    }
                 }
                 
             }
@@ -293,6 +360,13 @@ struct GameView: View {
             .resizable()
             .scaledToFill()
             .edgesIgnoringSafeArea(.all))
+    }
+    
+    func moveToNextPhase(onAnimation : Bool){
+        if(!onAnimation && viewModel.showDrop.allSatisfy({!$0})){
+            winState = true
+            gamePlayState = false
+        }
     }
     
 }
