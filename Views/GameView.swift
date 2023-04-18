@@ -17,7 +17,7 @@ struct GameView: View {
     @State var initialState: Bool = true
     
     @State private var showDrop: [Bool] = [true, true, true, true]
-    
+    @State var errorState : [Bool] = [false, false, false, false]
     //state moodbar
     @State var happinessValue: Float = 0.1
     @State var stressValue: Float = 0.7
@@ -28,9 +28,10 @@ struct GameView: View {
     @State var targetFeedback = false
     @State var bestThingFeedback = false
     @State var didntGoWellFeedback = false
-    
+   
     
     func resetFeedbackState(){
+        
         gratefulFeedback = false
         targetFeedback = false
         bestThingFeedback = false
@@ -147,7 +148,7 @@ struct GameView: View {
                                                     Text(answer.longAnswerText).frame(maxWidth: 220)
                                                         .font(caveat.bodyRegular)
                                                 }
-                                            }
+                                            }.modifier(Shake(animatableData: CGFloat(errorState[gameViewModel.answers.firstIndex(of: answer) ?? 0] ? 1 : 0)))
                                         }
                                         .onDrop(of: [.url], isTargeted: .constant(false)){
                                             providers in
@@ -182,13 +183,17 @@ struct GameView: View {
                                                                 case QuestionType.target:
                                                                     targetFeedback = true
                                                                     break
-                                                                    
-                                                                default:
-                                                                    resetFeedbackState()
-                                                                    
                                                                 }
+                                                                errorState = Array.init(repeating: false, count: 4)
                                                             }
                                                         }
+                                                    }
+                                                    else{
+                                                        withAnimation{
+                                                            errorState[gameViewModel.answers.firstIndex(of: answer) ?? 0] = true
+                                                        }
+                                                        errorState = Array.init(repeating: false, count: 4)
+                                                        
                                                     }
                                                 }
                                             }
@@ -237,15 +242,23 @@ struct GameView: View {
                         //chat/msg bar
                         ZStack(){
                             if(gratefulFeedback){
-                                Text("Who says managing stress has to be a chore? Keeping a gratitude journal can be a fun and rewarding way to improve your mood and increase happiness. Give it a try and see how it works for you!")
+                                TypingText(text : "Keeping a gratitude journal can be a fun way to reduce stress and improve your mood. By taking time each day to reflect on the things you're thankful for, you may find yourself feeling happier and more content.")
+//                                Text("Keeping a gratitude journal can be a fun way to reduce stress and improve your mood. By taking time each day to reflect on the things you're thankful for, you may find yourself feeling happier and more content.").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
                             }else if(didntGoWellFeedback){
+                                TypingText(text : "Reflecting on the things that didn't go well today and how to make them better in your journal can help you grow, improve, and feel better!")
                                 
+//                                Text("Reflecting on the things that didn't go well today and how to make them better in your journal can help you grow, improve, and feel better!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
                             }else if(bestThingFeedback){
-                                
-                            }else{ //target
-                                
+                                TypingText(text : "Reflecting on the best thing that happened to you today and how it made you feel in your journal can help you stay focused on the positive, boost your mood, and increase your overall well-being!")
+//                                Text("Reflecting on the best thing that happened to you today and how it made you feel in your journal can help you stay focused on the positive, boost your mood, and increase your overall well-being!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
+                            }else if(targetFeedback){ //target
+                                TypingText(text: "Take charge of your life and your goals! This simple yet powerful journaling prompt can help you stay on track, motivated, and inspired to achieve your dreams and aspirations!")
+//                                Text("Take charge of your life and your goals! This simple yet powerful journaling prompt can help you stay on track, motivated, and inspired to achieve your dreams and aspirations!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
+                            }else{
+                                Text("Hey there, wordsmith! Let's put those fingers to work and start writing up a storm!").font(.system(size: 24, weight: .semibold, design: .rounded)).foregroundColor(.white)
                             }
                         }
+                        .padding(.all, 24)
                         .frame(maxWidth: .infinity, maxHeight: 136).cornerRadius(20)
                         .background(chocolate)
                         .cornerRadius(20)
