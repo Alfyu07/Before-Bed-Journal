@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-
+let soundManager = SoundManager()
 struct MainMenuView: View {
     //state for navigating to mainView
     @State var isShowingMainView : Bool = false
@@ -42,21 +42,13 @@ struct MainMenuView: View {
                         .foregroundColor(.white).padding(.leading, 18)
                 }.shadow(color: Color("yellow").opacity(0.6), radius: 40, x: 0, y: 4)
             }
+            
             Spacer()
                 .frame(height: 80)
-            
-            
-            
             
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Image("mainMenuBg").resizable()
             .scaledToFill())
         .ignoresSafeArea()
-    }
-}
-
-struct MainMenuVie4w_Previews: PreviewProvider {
-    static var previews: some View {
-        MainMenuView()
     }
 }

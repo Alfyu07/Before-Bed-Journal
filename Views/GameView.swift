@@ -9,7 +9,9 @@ import SwiftUI
 
 struct GameView: View {
     @StateObject var viewModel = GameStateViewModel()
-    @State  var bookPosition = CGPoint(x: 190, y: 380)
+    let soundManager = SoundManager()
+    
+    @State  var bookPosition = CGPoint(x: 190, y: 500)
     
     //game state
     @State var dialogueState : Bool = true
@@ -61,7 +63,7 @@ struct GameView: View {
                             }
                             .onAppear{
                                 withAnimation(.easeInOut(duration: 1).repeatForever()){
-                                    bookPosition = CGPoint(x: 190, y: 360)
+                                    bookPosition = CGPoint(x: 190, y: 480)
                                 }
                             }
                         ZStack{
@@ -190,18 +192,30 @@ struct GameView: View {
                                                                 switch question.type{
                                                                 case QuestionType.grateful :
                                                                     gratefulFeedback = true
+                                                                    happinessValue += 0.25
+                                                                    stressValue -= 0.2
+                                                                    motivationValue += 0.2
                                                                     break
                                                                 case QuestionType.bestThingHappen:
                                                                     bestThingFeedback = true
+                                                                    happinessValue += 0.25
+                                                                    stressValue -= 0.1
                                                                     break
                                                                 case QuestionType.didntGoWell:
                                                                     didntGoWellFeedback = true
+                                                                    stressValue -= 0.2
+                                                                    motivationValue += 0.2
+                                                                    
                                                                     break
                                                                 case QuestionType.target:
                                                                     targetFeedback = true
+                                                                    motivationValue += 0.3
+                                                                    happinessValue += 0.25
                                                                     break
                                                                 }
                                                                 viewModel.errorState = Array.init(repeating: false, count: viewModel.questions.count)
+                                                                
+                                                                soundManager.playSoundEffect(soundName: "correct", type: "mp3")
                                                             }
                                                         }
                                                     }
@@ -210,6 +224,9 @@ struct GameView: View {
                                                             DispatchQueue.main.async{
                                                                 withAnimation{
                                                                     viewModel.errorState[viewModel.answers.firstIndex(of: answer) ?? 0] = true
+                                                                    
+                                                                    soundManager.playSoundEffect(soundName: "wrong", type: "mp3")
+                                                                    
                                                                 }
                                                                 viewModel.errorState = Array.init(repeating: false, count: viewModel.questions.count)
                                                             }
@@ -263,10 +280,7 @@ struct GameView: View {
                             if(gratefulFeedback){
                                 TypingText(text : "Keeping a gratitude journal can be a fun way for me to reduce stress and improve my mood. By taking time each day to reflect on the things I'm thankful for, I may find myself feeling happier and more content.", onAnimation: $onAnimation).onChange(of: onAnimation){
                                     onAnimation in
-                                    
-                                    if(!onAnimation && viewModel.showDrop.allSatisfy({!$0})){
-                                        print("selesaiiiiii")
-                                    }
+                                    moveToNextPhase(onAnimation: onAnimation)
                                     
                                 }
                                 
@@ -314,21 +328,37 @@ struct GameView: View {
                             VStack(alignment: .trailing){
                                 Spacer()
                                 ForEach(viewModel.lastMonolog.indices){ i in
+                                   
                                     if(viewModel.counter == i){
                                         TypingText(text : viewModel.lastMonolog[viewModel.counter], onAnimation: $onAnimation)
                                     }
+                                    
                                 }
                                 Spacer()
-                                Text("Tap to next")
-                                    .font(.body)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .opacity(isShowingText ? 1.0 : 0.2)
-                                    .onAppear{
-                                        withAnimation(Animation.easeInOut(duration: 1.5).repeatForever()) {
-                                            self.isShowingText.toggle() // toggle show/hide text repeatedly with easing animation
+                                if(viewModel.counter == viewModel.lastMonolog.count - 1){
+                                    Text("Tap to Exit!")
+                                        .font(.body)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .opacity(isShowingText ? 1.0 : 0.2)
+                                        .onAppear{
+                                            withAnimation(Animation.easeInOut(duration: 1.5).repeatForever()) {
+                                                self.isShowingText.toggle() // toggle show/hide text repeatedly with easing animation
+                                            }
                                         }
-                                    }
+                                }else{
+                                    Text("Tap to Next!")
+                                        .font(.body)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .opacity(isShowingText ? 1.0 : 0.2)
+                                        .onAppear{
+                                            withAnimation(Animation.easeInOut(duration: 1.5).repeatForever()) {
+                                                self.isShowingText.toggle() // toggle show/hide text repeatedly with easing animation
+                                            }
+                                        }
+                                }
+                                
                             }
                         }
                         .padding(.all, 24)
@@ -345,15 +375,16 @@ struct GameView: View {
                         if viewModel.counter < viewModel.lastMonolog.count - 1 {
                             viewModel.counter += 1
                         } else {
-                            dialogueState = false
-                            initialState = false
+                            exit(0)
                         }
                     }
                 }
                 
             }
         }
-        
+        .onAppear{
+            soundManager.playBackgroundMusic(soundName: "bgm sad", type: "mp3")
+        }
         .navigationBarBackButtonHidden(true)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Image(winState ? "lightBg" : "darkBg")
@@ -364,8 +395,20 @@ struct GameView: View {
     
     func moveToNextPhase(onAnimation : Bool){
         if(!onAnimation && viewModel.showDrop.allSatisfy({!$0})){
-            winState = true
-            gamePlayState = false
+            soundManager.stopBackgroundMusic()
+            soundManager.playBackgroundMusic(soundName: "happy", type: "mp3")
+            soundManager.playSoundEffect(soundName: "success", type: "mp3")
+            Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+                withAnimation(.easeOut(duration: 0.2)){
+//                    self.hideDialogue = true
+                    winState = true
+                    gamePlayState = false
+                    
+                    
+                }
+            }
+            
+            
         }
     }
     

@@ -11,8 +11,22 @@ import SwiftUI
 
 
 struct TypingText: View {
-    let text: String
+    @State var text: String
     @State private var animatedText = ""
+    @Binding var onAnimation : Bool
+    
+    func animateText() {
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.04, repeats: true) { timer in
+            if self.animatedText.count < self.text.count {
+                self.animatedText += String(self.text[self.animatedText.endIndex])
+            } else {
+                timer.invalidate()
+                onAnimation = false
+            }
+        }
+        timer.fire()
+    }
+    
     
     var body: some View {
         Text(animatedText)
@@ -22,14 +36,12 @@ struct TypingText: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.all, 24)
             .onAppear {
-                let timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
-                    if self.animatedText.count < self.text.count {
-                        self.animatedText += String(self.text[self.animatedText.endIndex])
-                    } else {
-                        timer.invalidate()
-                    }
-                }
-                timer.fire()
+                onAnimation = true
+                animateText()
+            }
+            .onChange(of: text) { _ in
+                animatedText = ""
+                animateText()
             }
     }
     
